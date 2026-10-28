@@ -1,733 +1,724 @@
 
 "use client";
 
-import { useMemo, useState } from "react";
-import {
-  Check,
-  ChevronDown,
-  ChevronLeft,
-  CircleCheck,
-  CreditCard,
-  MapPin,
-  Minus,
-  Package,
-  Phone,
-  Plus,
-  ShieldCheck,
-  ShoppingCart,
-  Truck,
-  UserRound,
-  Wallet,
-} from "lucide-react";
+import { useState, type FormEvent } from "react";
 
-const tires = [
-  { id: 1, name: "إطار سيارة اقتصادي", brand: "اقتصادي", price: 6500, description: "للاستخدام اليومي", color: "#e6edf5" },
-  { id: 2, name: "إطار سيارة متميز", brand: "متميز", price: 8500, description: "توازن بين الراحة والأداء", color: "#e7eee7" },
-  { id: 3, name: "إطار سيارة عالي الأداء", brand: "عالي الأداء", price: 11500, description: "للقيادة والأداء المحسن", color: "#f4e9df" },
-];
+type Product = {
+  id: number;
+  name: string;
+  description: string;
+  price: number;
+  sizes: string[];
+};
 
-const sizes = [
-  "165/65 R14",
-  "175/65 R14",
-  "185/65 R15",
-  "195/65 R15",
-  "205/55 R16",
-  "205/60 R16",
-  "215/55 R17",
-  "225/45 R17",
-  "225/55 R18",
+const products: Product[] = [
+  {
+    id: 1,
+    name: "إطار سيارة سياحية",
+    description: "للاستخدام اليومي والطرقات المعبدة",
+    price: 8500,
+    sizes: ["175/65 R14", "185/65 R15", "195/65 R15"],
+  },
+  {
+    id: 2,
+    name: "إطار سيارة متعددة الاستعمالات",
+    description: "ثبات وأداء لمختلف ظروف القيادة",
+    price: 12500,
+    sizes: ["205/55 R16", "215/60 R16", "225/65 R17"],
+  },
+  {
+    id: 3,
+    name: "إطار سيارة تجارية",
+    description: "مصمم لتحمل الاستعمال المتكرر",
+    price: 15800,
+    sizes: ["195/70 R15C", "205/65 R16C", "215/65 R16C"],
+  },
 ];
 
 const wilayas = [
-  "أدرار", "الشلف", "الأغواط", "أم البواقي", "باتنة", "بجاية",
-  "بسكرة", "بشار", "البليدة", "البويرة", "تمنراست", "تبسة",
-  "تلمسان", "تيارت", "تيزي وزو", "الجزائر", "الجلفة", "جيجل",
-  "سطيف", "سعيدة", "سكيكدة", "عنابة", "قالمة", "قسنطينة",
-  "المدية", "مستغانم", "المسيلة", "معسكر", "ورقلة", "وهران",
-  "البيض", "إليزي", "برج بوعريريج", "بومرداس", "الطارف",
-  "تندوف", "تيسمسيلت", "الوادي", "خنشلة", "سوق أهراس",
-  "تيبازة", "ميلة", "عين الدفلى", "النعامة", "عين تموشنت",
-  "غرداية", "غليزان", "تيميمون", "برج باجي مختار",
-  "أولاد جلال", "بني عباس", "عين صالح", "عين قزام",
-  "تقرت", "جانت", "المغير", "المنيعة",
+  "أدرار", "الشلف", "الأغواط", "أم البواقي", "باتنة",
+  "بجاية", "بسكرة", "بشار", "البليدة", "البويرة",
+  "تمنراست", "تبسة", "تلمسان", "تيارت", "تيزي وزو",
+  "الجزائر", "الجلفة", "جيجل", "سطيف", "سعيدة",
+  "سكيكدة", "سيدي بلعباس", "عنابة", "قالمة", "قسنطينة",
+  "المدية", "مستغانم", "المسيلة", "معسكر", "ورقلة",
+  "وهران", "البيض", "إليزي", "برج بوعريريج", "بومرداس",
+  "الطارف", "تندوف", "تيسمسيلت", "الوادي", "خنشلة",
+  "سوق أهراس", "تيبازة", "ميلة", "عين الدفلى", "النعامة",
+  "عين تموشنت", "غرداية", "غليزان",
 ];
 
-type Customer = {
-  fullName: string;
-  phone: string;
-  secondPhone: string;
-  wilaya: string;
-  commune: string;
-  address: string;
-};
-
-const initialCustomer: Customer = {
-  fullName: "",
-  phone: "",
-  secondPhone: "",
-  wilaya: "",
-  commune: "",
-  address: "",
-};
-
-const money = (value: number) =>
-  new Intl.NumberFormat("fr-DZ").format(value) + " دج";
+const formatPrice = (price: number) =>
+  new Intl.NumberFormat("fr-DZ").format(price) + " دج";
 
 export default function Home() {
-  const [size, setSize] = useState("205/55 R16");
-  const [selectedTire, setSelectedTire] = useState(1);
-  const [quantity, setQuantity] = useState(4);
-  const [customer, setCustomer] = useState<Customer>(initialCustomer);
   const [step, setStep] = useState(1);
-  const [error, setError] = useState("");
+  const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
+  const [selectedSize, setSelectedSize] = useState("");
+  const [quantity, setQuantity] = useState(1);
+  const [payment, setPayment] = useState("delivery");
+  const [submitted, setSubmitted] = useState(false);
   const [orderNumber, setOrderNumber] = useState("");
 
-  const tire = tires.find((item) => item.id === selectedTire)!;
-  const total = useMemo(() => tire.price * quantity, [tire, quantity]);
+  const [customer, setCustomer] = useState({
+    fullName: "",
+    phone: "",
+    alternatePhone: "",
+    wilaya: "",
+    commune: "",
+    address: "",
+    notes: "",
+  });
 
-  function updateCustomer(field: keyof Customer, value: string) {
+  const updateCustomer = (
+    field: keyof typeof customer,
+    value: string
+  ) => {
     setCustomer((previous) => ({ ...previous, [field]: value }));
-  }
+  };
 
-  function continueToCustomer() {
-    setError("");
-    setStep(2);
-    window.scrollTo({ top: 0, behavior: "smooth" });
-  }
+  const total = selectedProduct ? selectedProduct.price * quantity : 0;
 
-  function reviewOrder(event: React.FormEvent<HTMLFormElement>) {
+  function handleCustomerSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-
-    if (
-      !customer.fullName.trim() ||
-      !customer.phone.trim() ||
-      !customer.wilaya ||
-      !customer.commune.trim() ||
-      !customer.address.trim()
-    ) {
-      setError("يرجى ملء جميع الحقول المطلوبة.");
-      return;
-    }
-
-    if (!/^(0[567])\d{8}$/.test(customer.phone.replace(/\s/g, ""))) {
-      setError("يرجى إدخال رقم هاتف جزائري صحيح.");
-      return;
-    }
-
-    setError("");
     setStep(3);
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
 
-  function confirmDemoOrder() {
-    // معاينة محلية فقط؛ لا يُرسل الطلب إلى خادم.
+  function handleOrderSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+
+    // لا تُرسل بيانات شخصية أو بيانات دفع إلى أي خادم.
+    // اربط هذه الخطوة بخدمة الطلبات المعتمدة عند توفرها.
     setOrderNumber(
-      "DEMO-" + Math.random().toString(36).slice(2, 8).toUpperCase()
+      "MAH-" + Math.random().toString(36).slice(2, 8).toUpperCase()
     );
-    setStep(4);
+    setSubmitted(true);
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
 
-  const inputClass =
-    "mt-2 w-full rounded-xl border border-gray-200 bg-white px-4 py-3 text-sm text-gray-800 outline-none transition focus:border-blue-600 focus:ring-2 focus:ring-blue-100";
-
-  const labelClass = "block text-sm font-semibold text-gray-700";
+  function startOrder(product: Product) {
+    setSelectedProduct(product);
+    setSelectedSize("");
+    setQuantity(1);
+    setStep(1);
+    setSubmitted(false);
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }
 
   return (
-    <main dir="rtl" className="min-h-screen bg-[#f5f7fa] text-gray-800">
-      <div className="bg-[#102d52] px-4 py-2 text-center text-xs text-white sm:text-sm">
-        واجهة تجريبية مستقلة — لا تمثل بوابة الطلب الرسمية
-      </div>
-
-      <header className="sticky top-0 z-20 border-b border-gray-100 bg-white/95 backdrop-blur">
-        <div className="mx-auto flex max-w-6xl items-center justify-between gap-4 px-4 py-4">
+    <main dir="rtl" className="min-h-screen bg-slate-50 text-slate-800">
+      <header className="bg-red-700 text-white shadow-md">
+        <div className="mx-auto flex max-w-6xl items-center justify-between gap-4 px-4 py-5">
           <a href="#" className="flex items-center gap-3">
-            <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-[#123c70] text-white">
-              <Truck size={25} />
-            </div>
-            <div>
-              <div className="text-xl font-black tracking-tight text-[#123c70]">
-                محطتي
-              </div>
-              <div className="text-[11px] text-gray-500">
-                خدمة طلب الإطارات
-              </div>
-            </div>
+            <span className="flex h-12 w-12 items-center justify-center rounded-xl bg-white text-2xl font-black text-red-700">
+              M
+            </span>
+            <span>
+              <span className="block text-xl font-extrabold">
+                MAHATA
+              </span>
+              <span className="text-sm text-red-100">
+                فضاء طلب المنتجات
+              </span>
+            </span>
           </a>
 
-          <div className="hidden items-center gap-2 text-sm text-gray-600 sm:flex">
-            <ShieldCheck size={18} className="text-green-600" />
-            <span>واجهة تجريبية للطلب</span>
-          </div>
-
-          <div className="flex items-center gap-2 rounded-xl bg-blue-50 px-3 py-2 text-sm font-bold text-[#123c70]">
-            <ShoppingCart size={18} />
-            {quantity}
-          </div>
+          <a
+            href="#products"
+            className="rounded-lg bg-white px-4 py-2 text-sm font-bold text-red-700 transition hover:bg-red-50"
+          >
+            المنتجات
+          </a>
         </div>
       </header>
 
-      <div className="mx-auto max-w-6xl px-4 pb-16 pt-6 sm:pt-10">
-        <nav className="mb-8 flex items-center justify-center gap-2 sm:gap-4">
-          {[
-            { n: 1, title: "اختيار الإطار" },
-            { n: 2, title: "معلومات الزبون" },
-            { n: 3, title: "مراجعة الطلب" },
-          ].map((item) => (
-            <div key={item.n} className="flex items-center gap-2">
-              <div
-                className={`flex h-8 w-8 items-center justify-center rounded-full text-sm font-bold ${
-                  step >= item.n
-                    ? "bg-[#123c70] text-white"
-                    : "bg-gray-200 text-gray-500"
-                }`}
-              >
-                {step > item.n ? <Check size={17} /> : item.n}
-              </div>
-              <span
-                className={`hidden text-xs font-semibold sm:inline sm:text-sm ${
-                  step >= item.n ? "text-[#123c70]" : "text-gray-400"
-                }`}
-              >
-                {item.title}
-              </span>
-              {item.n < 3 && (
-                <div className="mx-1 h-px w-5 bg-gray-300 sm:w-12" />
-              )}
-            </div>
-          ))}
-        </nav>
+      <section className="bg-gradient-to-l from-red-800 to-red-600 text-white">
+        <div className="mx-auto grid max-w-6xl gap-8 px-4 py-14 md:grid-cols-2 md:items-center md:py-20">
+          <div>
+            <p className="mb-3 text-sm font-bold text-red-100">
+              مرحباً بكم
+            </p>
+            <h1 className="text-3xl font-black leading-relaxed md:text-5xl">
+              اختر منتجك
+              <br />
+              وأكمل طلبك بسهولة
+            </h1>
+            <p className="mt-5 max-w-xl leading-8 text-red-50">
+              تصفح المنتجات المتاحة، وحدد المقاس والكمية، ثم أدخل
+              معلومات التواصل والتوصيل لمراجعة تفاصيل طلبك.
+            </p>
+            <a
+              href="#products"
+              className="mt-7 inline-flex rounded-xl bg-white px-6 py-3 font-extrabold text-red-700 transition hover:bg-red-50"
+            >
+              اكتشف المنتجات
+            </a>
+          </div>
 
-        {step === 1 && (
-          <>
-            <section className="relative mb-8 overflow-hidden rounded-3xl bg-gradient-to-l from-[#0e2b4f] to-[#205b91] px-6 py-9 text-white sm:px-10 sm:py-12">
-              <div className="relative z-10 max-w-xl">
-                <div className="mb-4 inline-flex items-center gap-2 rounded-full bg-white/10 px-3 py-1.5 text-xs">
-                  <Package size={15} />
-                  خدمة اختيار الإطارات
+          <div className="flex justify-center">
+            <div className="flex h-64 w-64 items-center justify-center rounded-full border-8 border-red-400/40 bg-white/10 md:h-80 md:w-80">
+              <div className="flex h-48 w-48 items-center justify-center rounded-full border-[18px] border-slate-900 bg-slate-700 shadow-2xl md:h-60 md:w-60">
+                <div className="flex h-24 w-24 items-center justify-center rounded-full border-8 border-slate-300 bg-slate-100 text-3xl font-black text-red-700 md:h-28 md:w-28">
+                  M
                 </div>
-                <h1 className="text-3xl font-black leading-tight sm:text-5xl">
-                  اختر إطارك
-                  <br />
-                  بكل سهولة
-                </h1>
-                <p className="mt-4 max-w-md text-sm leading-7 text-blue-100 sm:text-base">
-                  اختر المقاس المناسب لسيارتك، حدّد الكمية، وراجع تفاصيل
-                  طلبك في خطوات بسيطة.
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section id="products" className="mx-auto max-w-6xl px-4 py-12">
+        <div className="mb-8">
+          <h2 className="text-2xl font-black md:text-3xl">
+            المنتجات
+          </h2>
+          <p className="mt-2 text-slate-500">
+            اختر الصنف المناسب لسيارتك.
+          </p>
+        </div>
+
+        <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+          {products.map((product) => (
+            <article
+              key={product.id}
+              className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm transition hover:-translate-y-1 hover:shadow-lg"
+            >
+              <div className="flex h-44 items-center justify-center bg-slate-100">
+                <svg
+                  viewBox="0 0 180 150"
+                  className="h-36 w-44"
+                  role="img"
+                  aria-label="رسم توضيحي لإطار سيارة"
+                >
+                  <ellipse
+                    cx="90"
+                    cy="78"
+                    rx="55"
+                    ry="65"
+                    fill="#1f2937"
+                  />
+                  <ellipse
+                    cx="90"
+                    cy="78"
+                    rx="39"
+                    ry="49"
+                    fill="#475569"
+                  />
+                  <ellipse
+                    cx="90"
+                    cy="78"
+                    rx="27"
+                    ry="36"
+                    fill="#cbd5e1"
+                  />
+                  <ellipse
+                    cx="90"
+                    cy="78"
+                    rx="17"
+                    ry="24"
+                    fill="#64748b"
+                  />
+                  <ellipse
+                    cx="90"
+                    cy="78"
+                    rx="7"
+                    ry="10"
+                    fill="#e2e8f0"
+                  />
+                  {Array.from({ length: 10 }).map((_, index) => (
+                    <path
+                      key={index}
+                      d="M 70 23 L 82 17 L 85 27 L 75 33 Z"
+                      fill="#64748b"
+                      transform={`rotate(${index * 36} 90 78)`}
+                    />
+                  ))}
+                </svg>
+              </div>
+
+              <div className="p-5">
+                <h3 className="text-lg font-extrabold">
+                  {product.name}
+                </h3>
+                <p className="mt-2 min-h-12 text-sm leading-6 text-slate-500">
+                  {product.description}
+                </p>
+                <p className="mt-4 text-xl font-black text-red-700">
+                  {formatPrice(product.price)}
                 </p>
                 <button
-                  onClick={() =>
-                    document.getElementById("products")?.scrollIntoView({
-                      behavior: "smooth",
-                    })
-                  }
-                  className="mt-6 inline-flex items-center gap-2 rounded-xl bg-white px-5 py-3 text-sm font-bold text-[#123c70] transition hover:bg-blue-50"
+                  type="button"
+                  onClick={() => startOrder(product)}
+                  className="mt-5 w-full rounded-xl bg-red-700 px-4 py-3 font-bold text-white transition hover:bg-red-800"
                 >
-                  ابدأ الاختيار
-                  <ChevronLeft size={18} />
+                  اختيار المنتج
                 </button>
               </div>
-              <div className="pointer-events-none absolute -left-10 -top-16 h-64 w-64 rounded-full border-[35px] border-white/5" />
-              <div className="pointer-events-none absolute -left-2 -bottom-28 h-64 w-64 rounded-full border-[25px] border-white/5" />
-            </section>
+            </article>
+          ))}
+        </div>
 
-            <section id="products" className="grid gap-6 lg:grid-cols-[1fr_330px]">
-              <div className="space-y-6">
-                <div className="rounded-2xl border border-gray-100 bg-white p-5 shadow-sm sm:p-7">
-                  <div className="mb-5 flex items-center gap-3">
-                    <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-blue-50 text-[#123c70]">
-                      <Package size={21} />
-                    </div>
-                    <div>
-                      <h2 className="text-lg font-black">مقاس الإطار</h2>
-                      <p className="mt-1 text-xs text-gray-500">
-                        اختر المقاس المكتوب على إطار سيارتك
-                      </p>
-                    </div>
-                  </div>
+        <p className="mt-5 text-xs leading-6 text-slate-500">
+          الأسعار والأصناف الظاهرة تحتاج إلى مطابقتها مع قائمة المنتجات
+          والأسعار المعتمدة قبل نشر الموقع.
+        </p>
+      </section>
 
-                  <label className={labelClass} htmlFor="size">
-                    مقاس الإطار
-                  </label>
-                  <div className="relative">
-                    <select
-                      id="size"
-                      value={size}
-                      onChange={(e) => setSize(e.target.value)}
-                      className={`${inputClass} appearance-none`}
-                    >
-                      {sizes.map((item) => (
-                        <option key={item} value={item}>
-                          {item}
-                        </option>
-                      ))}
-                    </select>
-                    <ChevronDown
-                      className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-gray-400"
-                      size={18}
-                    />
-                  </div>
-                </div>
-
-                <div className="rounded-2xl border border-gray-100 bg-white p-5 shadow-sm sm:p-7">
-                  <div className="mb-5">
-                    <h2 className="text-lg font-black">اختر نوع الإطار</h2>
-                    <p className="mt-1 text-xs text-gray-500">
-                      المنتجات والأسعار التالية تجريبية للعرض فقط
-                    </p>
-                  </div>
-
-                  <div className="grid gap-4 sm:grid-cols-3">
-                    {tires.map((item) => (
-                      <button
-                        key={item.id}
-                        onClick={() => setSelectedTire(item.id)}
-                        className={`relative rounded-2xl border-2 p-4 text-right transition ${
-                          selectedTire === item.id
-                            ? "border-[#205b91] bg-blue-50/60"
-                            : "border-gray-100 bg-white hover:border-gray-300"
-                        }`}
-                      >
-                        {selectedTire === item.id && (
-                          <span className="absolute left-3 top-3 flex h-6 w-6 items-center justify-center rounded-full bg-[#123c70] text-white">
-                            <Check size={14} />
-                          </span>
-                        )}
-                        <div
-                          className="mb-4 flex h-28 items-center justify-center rounded-xl"
-                          style={{ backgroundColor: item.color }}
-                        >
-                          <div className="flex h-20 w-20 items-center justify-center rounded-full border-[12px] border-gray-800 bg-gray-300 shadow-lg">
-                            <div className="h-9 w-9 rounded-full border-4 border-gray-500 bg-gray-100" />
-                          </div>
-                        </div>
-                        <div className="text-xs text-gray-500">{item.brand}</div>
-                        <div className="mt-1 text-sm font-black">{item.name}</div>
-                        <div className="mt-3 text-base font-black text-[#123c70]">
-                          {money(item.price)}
-                        </div>
-                        <div className="mt-1 text-[11px] text-gray-500">
-                          {item.description}
-                        </div>
-                      </button>
-                    ))}
-                  </div>
-                </div>
-
-                <div className="rounded-2xl border border-gray-100 bg-white p-5 shadow-sm sm:p-7">
-                  <h2 className="text-lg font-black">الكمية المطلوبة</h2>
-                  <p className="mt-1 text-xs text-gray-500">
-                    حدّد عدد الإطارات التي تحتاجها
+      {selectedProduct && (
+        <section id="order" className="border-t border-slate-200 bg-white">
+          <div className="mx-auto max-w-4xl px-4 py-12">
+            {!submitted ? (
+              <>
+                <div className="mb-8">
+                  <h2 className="text-2xl font-black">
+                    إتمام الطلب
+                  </h2>
+                  <p className="mt-2 text-slate-500">
+                    أكمل الخطوات التالية لمراجعة طلبك.
                   </p>
-                  <div className="mt-5 flex items-center justify-between gap-4">
-                    <div>
-                      <div className="font-bold">{tire.name}</div>
-                      <div className="mt-1 text-sm text-gray-500">
-                        المقاس: {size}
+                </div>
+
+                <div className="mb-8 grid grid-cols-3 gap-2">
+                  {[
+                    { number: 1, label: "المنتج" },
+                    { number: 2, label: "معلومات الزبون" },
+                    { number: 3, label: "مراجعة الطلب" },
+                  ].map((item) => (
+                    <div
+                      key={item.number}
+                      className={`rounded-xl p-3 text-center text-sm font-bold ${
+                        step === item.number
+                          ? "bg-red-700 text-white"
+                          : step > item.number
+                          ? "bg-red-100 text-red-800"
+                          : "bg-slate-100 text-slate-500"
+                      }`}
+                    >
+                      <span className="mb-1 block">
+                        {item.number}
+                      </span>
+                      {item.label}
+                    </div>
+                  ))}
+                </div>
+
+                {step === 1 && (
+                  <div className="space-y-6">
+                    <div className="rounded-2xl border border-slate-200 p-5">
+                      <div className="flex flex-wrap items-start justify-between gap-4">
+                        <div>
+                          <h3 className="text-lg font-extrabold">
+                            {selectedProduct.name}
+                          </h3>
+                          <p className="mt-2 text-sm text-slate-500">
+                            {selectedProduct.description}
+                          </p>
+                        </div>
+                        <p className="font-black text-red-700">
+                          {formatPrice(selectedProduct.price)}
+                        </p>
+                      </div>
+
+                      <label className="mt-6 block text-sm font-bold">
+                        المقاس
+                      </label>
+                      <select
+                        value={selectedSize}
+                        onChange={(event) =>
+                          setSelectedSize(event.target.value)
+                        }
+                        className="mt-2 w-full rounded-xl border border-slate-300 bg-white p-3 outline-none focus:border-red-600"
+                      >
+                        <option value="">اختر المقاس</option>
+                        {selectedProduct.sizes.map((size) => (
+                          <option key={size} value={size}>
+                            {size}
+                          </option>
+                        ))}
+                      </select>
+
+                      <label className="mt-5 block text-sm font-bold">
+                        الكمية
+                      </label>
+                      <div className="mt-2 flex w-fit items-center overflow-hidden rounded-xl border border-slate-300">
+                        <button
+                          type="button"
+                          onClick={() =>
+                            setQuantity((value) => Math.max(1, value - 1))
+                          }
+                          className="px-5 py-2 text-xl font-bold hover:bg-slate-100"
+                          aria-label="تقليل الكمية"
+                        >
+                          −
+                        </button>
+                        <span className="min-w-12 text-center font-bold">
+                          {quantity}
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() =>
+                            setQuantity((value) => Math.min(20, value + 1))
+                          }
+                          className="px-5 py-2 text-xl font-bold hover:bg-slate-100"
+                          aria-label="زيادة الكمية"
+                        >
+                          +
+                        </button>
+                      </div>
+
+                      <div className="mt-6 flex items-center justify-between border-t border-slate-200 pt-4">
+                        <span className="font-bold">المجموع</span>
+                        <span className="text-xl font-black text-red-700">
+                          {formatPrice(total)}
+                        </span>
                       </div>
                     </div>
-                    <div className="flex items-center gap-4 rounded-xl border border-gray-200 p-2">
+
+                    <button
+                      type="button"
+                      disabled={!selectedSize}
+                      onClick={() => {
+                        setStep(2);
+                        window.scrollTo({ top: 0, behavior: "smooth" });
+                      }}
+                      className="w-full rounded-xl bg-red-700 px-5 py-3 font-bold text-white transition hover:bg-red-800 disabled:cursor-not-allowed disabled:bg-slate-300"
+                    >
+                      متابعة
+                    </button>
+                  </div>
+                )}
+
+                {step === 2 && (
+                  <form
+                    onSubmit={handleCustomerSubmit}
+                    className="space-y-5"
+                  >
+                    <div className="grid gap-5 md:grid-cols-2">
+                      <div>
+                        <label className="mb-2 block text-sm font-bold">
+                          الاسم واللقب *
+                        </label>
+                        <input
+                          required
+                          autoComplete="name"
+                          value={customer.fullName}
+                          onChange={(event) =>
+                            updateCustomer("fullName", event.target.value)
+                          }
+                          placeholder="أدخل الاسم واللقب"
+                          className="w-full rounded-xl border border-slate-300 p-3 outline-none focus:border-red-600"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="mb-2 block text-sm font-bold">
+                          رقم الهاتف *
+                        </label>
+                        <input
+                          required
+                          type="tel"
+                          inputMode="tel"
+                          autoComplete="tel"
+                          value={customer.phone}
+                          onChange={(event) =>
+                            updateCustomer("phone", event.target.value)
+                          }
+                          placeholder="مثال: 0550123456"
+                          className="w-full rounded-xl border border-slate-300 p-3 outline-none focus:border-red-600"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="mb-2 block text-sm font-bold">
+                          رقم هاتف إضافي
+                        </label>
+                        <input
+                          type="tel"
+                          inputMode="tel"
+                          value={customer.alternatePhone}
+                          onChange={(event) =>
+                            updateCustomer(
+                              "alternatePhone",
+                              event.target.value
+                            )
+                          }
+                          placeholder="اختياري"
+                          className="w-full rounded-xl border border-slate-300 p-3 outline-none focus:border-red-600"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="mb-2 block text-sm font-bold">
+                          الولاية *
+                        </label>
+                        <select
+                          required
+                          value={customer.wilaya}
+                          onChange={(event) => {
+                            updateCustomer("wilaya", event.target.value);
+                            updateCustomer("commune", "");
+                          }}
+                          className="w-full rounded-xl border border-slate-300 bg-white p-3 outline-none focus:border-red-600"
+                        >
+                          <option value="">اختر الولاية</option>
+                          {wilayas.map((wilaya) => (
+                            <option key={wilaya} value={wilaya}>
+                              {wilaya}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+
+                      <div>
+                        <label className="mb-2 block text-sm font-bold">
+                          البلدية *
+                        </label>
+                        <input
+                          required
+                          value={customer.commune}
+                          onChange={(event) =>
+                            updateCustomer("commune", event.target.value)
+                          }
+                          placeholder="أدخل اسم البلدية"
+                          className="w-full rounded-xl border border-slate-300 p-3 outline-none focus:border-red-600"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="mb-2 block text-sm font-bold">
+                          العنوان بالتفصيل *
+                        </label>
+                        <input
+                          required
+                          autoComplete="street-address"
+                          value={customer.address}
+                          onChange={(event) =>
+                            updateCustomer("address", event.target.value)
+                          }
+                          placeholder="الحي، الشارع، رقم المنزل..."
+                          className="w-full rounded-xl border border-slate-300 p-3 outline-none focus:border-red-600"
+                        />
+                      </div>
+                    </div>
+
+                    <div>
+                      <label className="mb-2 block text-sm font-bold">
+                        ملاحظات إضافية
+                      </label>
+                      <textarea
+                        rows={3}
+                        value={customer.notes}
+                        onChange={(event) =>
+                          updateCustomer("notes", event.target.value)
+                        }
+                        placeholder="ملاحظات حول الطلب أو التوصيل"
+                        className="w-full rounded-xl border border-slate-300 p-3 outline-none focus:border-red-600"
+                      />
+                    </div>
+
+                    <div className="flex flex-col gap-3 sm:flex-row">
                       <button
-                        aria-label="إنقاص الكمية"
-                        disabled={quantity <= 1}
-                        onClick={() => setQuantity((q) => Math.max(1, q - 1))}
-                        className="flex h-8 w-8 items-center justify-center rounded-lg bg-gray-100 disabled:opacity-40"
+                        type="button"
+                        onClick={() => setStep(1)}
+                        className="rounded-xl border border-slate-300 px-5 py-3 font-bold hover:bg-slate-50 sm:flex-1"
                       >
-                        <Minus size={16} />
+                        رجوع
                       </button>
-                      <span className="min-w-5 text-center font-black">
-                        {quantity}
-                      </span>
                       <button
-                        aria-label="زيادة الكمية"
-                        disabled={quantity >= 20}
-                        onClick={() => setQuantity((q) => Math.min(20, q + 1))}
-                        className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#123c70] text-white disabled:opacity-40"
+                        type="submit"
+                        className="rounded-xl bg-red-700 px-5 py-3 font-bold text-white hover:bg-red-800 sm:flex-1"
                       >
-                        <Plus size={16} />
+                        مراجعة الطلب
                       </button>
                     </div>
-                  </div>
-                </div>
-              </div>
+                  </form>
+                )}
 
-              <aside className="h-fit rounded-2xl border border-gray-100 bg-white p-6 shadow-sm lg:sticky lg:top-24">
-                <h2 className="text-lg font-black">ملخص الطلب</h2>
-                <div className="my-5 flex items-center justify-between gap-3 text-sm">
-                  <span className="text-gray-500">نوع الإطار</span>
-                  <span className="text-left font-bold">{tire.brand}</span>
+                {step === 3 && (
+                  <form
+                    onSubmit={handleOrderSubmit}
+                    className="space-y-6"
+                  >
+                    <div className="rounded-2xl border border-slate-200 p-5">
+                      <h3 className="mb-4 text-lg font-extrabold">
+                        تفاصيل المنتج
+                      </h3>
+                      <div className="space-y-3 text-sm">
+                        <div className="flex justify-between gap-4">
+                          <span className="text-slate-500">المنتج</span>
+                          <span className="font-bold">
+                            {selectedProduct.name}
+                          </span>
+                        </div>
+                        <div className="flex justify-between gap-4">
+                          <span className="text-slate-500">المقاس</span>
+                          <span className="font-bold">{selectedSize}</span>
+                        </div>
+                        <div className="flex justify-between gap-4">
+                          <span className="text-slate-500">الكمية</span>
+                          <span className="font-bold">{quantity}</span>
+                        </div>
+                        <div className="flex justify-between gap-4 border-t pt-3">
+                          <span className="font-bold">المجموع</span>
+                          <span className="text-lg font-black text-red-700">
+                            {formatPrice(total)}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="rounded-2xl border border-slate-200 p-5">
+                      <h3 className="mb-4 text-lg font-extrabold">
+                        معلومات الزبون
+                      </h3>
+                      <div className="space-y-3 text-sm">
+                        {[
+                          ["الاسم واللقب", customer.fullName],
+                          ["رقم الهاتف", customer.phone],
+                          ["هاتف إضافي", customer.alternatePhone || "—"],
+                          ["الولاية", customer.wilaya],
+                          ["البلدية", customer.commune],
+                          ["العنوان", customer.address],
+                          ["ملاحظات", customer.notes || "—"],
+                        ].map(([label, value]) => (
+                          <div
+                            key={label}
+                            className="flex justify-between gap-4"
+                          >
+                            <span className="shrink-0 text-slate-500">
+                              {label}
+                            </span>
+                            <span className="break-words text-left font-bold">
+                              {value}
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+
+                    <div className="rounded-2xl border border-slate-200 p-5">
+                      <h3 className="mb-4 text-lg font-extrabold">
+                        طريقة الدفع
+                      </h3>
+
+                      <label className="flex cursor-pointer items-start gap-3 rounded-xl border border-slate-200 p-4">
+                        <input
+                          type="radio"
+                          name="payment"
+                          value="delivery"
+                          checked={payment === "delivery"}
+                          onChange={(event) => setPayment(event.target.value)}
+                          className="mt-1 accent-red-700"
+                        />
+                        <span>
+                          <span className="block font-bold">
+                            الدفع عند الاستلام
+                          </span>
+                          <span className="mt-1 block text-sm text-slate-500">
+                            تسديد المبلغ عند استلام الطلب، إذا كانت هذه
+                            الخدمة متاحة.
+                          </span>
+                        </span>
+                      </label>
+
+                      <label className="mt-3 flex cursor-pointer items-start gap-3 rounded-xl border border-slate-200 p-4">
+                        <input
+                          type="radio"
+                          name="payment"
+                          value="electronic"
+                          checked={payment === "electronic"}
+                          onChange={(event) => setPayment(event.target.value)}
+                          className="mt-1 accent-red-700"
+                        />
+                        <span>
+                          <span className="block font-bold">
+                            الدفع الإلكتروني
+                          </span>
+                          <span className="mt-1 block text-sm text-slate-500">
+                            يتطلب بوابة دفع آمنة معتمدة لإتمام العملية.
+                          </span>
+                        </span>
+                      </label>
+
+                      {payment === "electronic" && (
+                        <p className="mt-3 rounded-xl bg-amber-50 p-3 text-sm leading-6 text-amber-900">
+                          يجب ربط خيار الدفع الإلكتروني ببوابة دفع
+                          معتمدة قبل إتاحة إتمام الدفع.
+                        </p>
+                      )}
+                    </div>
+
+                    <div className="flex flex-col gap-3 sm:flex-row">
+                      <button
+                        type="button"
+                        onClick={() => setStep(2)}
+                        className="rounded-xl border border-slate-300 px-5 py-3 font-bold hover:bg-slate-50 sm:flex-1"
+                      >
+                        تعديل المعلومات
+                      </button>
+                      <button
+                        type="submit"
+                        disabled={payment === "electronic"}
+                        className="rounded-xl bg-red-700 px-5 py-3 font-bold text-white hover:bg-red-800 disabled:cursor-not-allowed disabled:bg-slate-300 sm:flex-1"
+                      >
+                        تأكيد الطلب
+                      </button>
+                    </div>
+                  </form>
+                )}
+              </>
+            ) : (
+              <div className="mx-auto max-w-xl rounded-3xl border border-slate-200 bg-white p-8 text-center shadow-sm">
+                <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-green-100 text-3xl text-green-700">
+                  ✓
                 </div>
-                <div className="my-4 flex items-center justify-between text-sm">
-                  <span className="text-gray-500">المقاس</span>
-                  <span className="font-bold">{size}</span>
-                </div>
-                <div className="my-4 flex items-center justify-between text-sm">
-                  <span className="text-gray-500">الكمية</span>
-                  <span className="font-bold">{quantity}</span>
-                </div>
-                <div className="my-4 flex items-center justify-between text-sm">
-                  <span className="text-gray-500">سعر الوحدة</span>
-                  <span className="font-bold">{money(tire.price)}</span>
-                </div>
-                <div className="my-5 border-t border-dashed border-gray-200" />
-                <div className="flex items-center justify-between gap-2">
-                  <span className="font-bold">الإجمالي التجريبي</span>
-                  <span className="text-xl font-black text-[#123c70]">
-                    {money(total)}
+                <h2 className="mt-5 text-2xl font-black">
+                  تم تسجيل الطلب على هذه الصفحة
+                </h2>
+                <p className="mt-3 leading-7 text-slate-600">
+                  رقم المرجع:{" "}
+                  <span className="font-black text-red-700">
+                    {orderNumber}
                   </span>
-                </div>
-                <button
-                  onClick={continueToCustomer}
-                  className="mt-6 flex w-full items-center justify-center gap-2 rounded-xl bg-[#123c70] px-5 py-4 font-bold text-white transition hover:bg-[#0d2c50]"
-                >
-                  متابعة الطلب
-                  <ChevronLeft size={19} />
-                </button>
-                <p className="mt-4 text-center text-xs leading-6 text-gray-500">
-                  الأسعار غير رسمية، ولا يتم إرسال أي طلب فعلي.
                 </p>
-              </aside>
-            </section>
-          </>
-        )}
-
-        {step === 2 && (
-          <section className="mx-auto max-w-3xl">
-            <div className="mb-6">
-              <h1 className="text-2xl font-black sm:text-3xl">
-                معلومات الزبون
-              </h1>
-              <p className="mt-2 text-sm leading-6 text-gray-500">
-                أدخل معلومات الاتصال والعنوان لإكمال معاينة الطلب.
-              </p>
-            </div>
-
-            <form
-              onSubmit={reviewOrder}
-              className="space-y-6 rounded-2xl border border-gray-100 bg-white p-5 shadow-sm sm:p-8"
-            >
-              <div className="flex items-center gap-3 border-b border-gray-100 pb-5">
-                <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-blue-50 text-[#123c70]">
-                  <UserRound size={22} />
-                </div>
-                <div>
-                  <h2 className="font-black">المعلومات الشخصية</h2>
-                  <p className="mt-1 text-xs text-gray-500">
-                    الحقول التي تحمل * مطلوبة
-                  </p>
-                </div>
-              </div>
-
-              <div>
-                <label className={labelClass} htmlFor="fullName">
-                  الاسم واللقب *
-                </label>
-                <input
-                  id="fullName"
-                  autoComplete="name"
-                  className={inputClass}
-                  placeholder="أدخل الاسم واللقب"
-                  value={customer.fullName}
-                  onChange={(e) => updateCustomer("fullName", e.target.value)}
-                  required
-                />
-              </div>
-
-              <div className="grid gap-5 sm:grid-cols-2">
-                <div>
-                  <label className={labelClass} htmlFor="phone">
-                    رقم الهاتف *
-                  </label>
-                  <div className="relative">
-                    <Phone
-                      size={17}
-                      className="absolute right-3 top-1/2 mt-1.5 text-gray-400"
-                    />
-                    <input
-                      id="phone"
-                      type="tel"
-                      inputMode="tel"
-                      autoComplete="tel"
-                      className={`${inputClass} pr-10`}
-                      placeholder="05XXXXXXXX"
-                      value={customer.phone}
-                      onChange={(e) => updateCustomer("phone", e.target.value)}
-                      required
-                    />
-                  </div>
-                </div>
-                <div>
-                  <label className={labelClass} htmlFor="secondPhone">
-                    رقم هاتف إضافي (اختياري)
-                  </label>
-                  <input
-                    id="secondPhone"
-                    type="tel"
-                    inputMode="tel"
-                    className={inputClass}
-                    placeholder="أدخل رقمًا إضافيًا"
-                    value={customer.secondPhone}
-                    onChange={(e) =>
-                      updateCustomer("secondPhone", e.target.value)
-                    }
-                  />
-                </div>
-              </div>
-
-              <div className="flex items-center gap-3 border-b border-gray-100 pb-5 pt-3">
-                <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-blue-50 text-[#123c70]">
-                  <MapPin size={22} />
-                </div>
-                <div>
-                  <h2 className="font-black">عنوان الزبون</h2>
-                  <p className="mt-1 text-xs text-gray-500">
-                    حدّد مكان الإقامة
-                  </p>
-                </div>
-              </div>
-
-              <div className="grid gap-5 sm:grid-cols-2">
-                <div>
-                  <label className={labelClass} htmlFor="wilaya">
-                    الولاية *
-                  </label>
-                  <div className="relative">
-                    <select
-                      id="wilaya"
-                      className={`${inputClass} appearance-none`}
-                      value={customer.wilaya}
-                      onChange={(e) => updateCustomer("wilaya", e.target.value)}
-                      required
-                    >
-                      <option value="">اختر الولاية</option>
-                      {wilayas.map((w) => (
-                        <option key={w} value={w}>
-                          {w}
-                        </option>
-                      ))}
-                    </select>
-                    <ChevronDown
-                      size={17}
-                      className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-gray-400"
-                    />
-                  </div>
-                </div>
-                <div>
-                  <label className={labelClass} htmlFor="commune">
-                    البلدية *
-                  </label>
-                  <input
-                    id="commune"
-                    className={inputClass}
-                    placeholder="أدخل اسم البلدية"
-                    value={customer.commune}
-                    onChange={(e) => updateCustomer("commune", e.target.value)}
-                    required
-                  />
-                </div>
-              </div>
-
-              <div>
-                <label className={labelClass} htmlFor="address">
-                  العنوان بالتفصيل *
-                </label>
-                <textarea
-                  id="address"
-                  rows={3}
-                  autoComplete="street-address"
-                  className={inputClass}
-                  placeholder="الحي، الشارع، رقم المنزل..."
-                  value={customer.address}
-                  onChange={(e) => updateCustomer("address", e.target.value)}
-                  required
-                />
-              </div>
-
-              <div className="rounded-xl border border-blue-100 bg-blue-50/60 p-4">
-                <div className="flex items-start gap-3">
-                  <ShieldCheck
-                    size={21}
-                    className="mt-0.5 shrink-0 text-[#123c70]"
-                  />
-                  <div>
-                    <h3 className="text-sm font-bold">حماية معلوماتك</h3>
-                    <p className="mt-1 text-xs leading-6 text-gray-600">
-                      هذه معاينة مستقلة. لا تدخل رقم بطاقة التعريف أو بيانات
-                      البطاقة الذهبية أو الرقم السري أو تاريخ انتهاء البطاقة
-                      هنا. لا توجد عملية دفع أو إرسال طلب حقيقي في هذه النسخة.
-                    </p>
-                  </div>
-                </div>
-              </div>
-
-              {error && (
-                <p role="alert" className="rounded-xl bg-red-50 p-3 text-sm text-red-700">
-                  {error}
+                <p className="mt-3 text-sm leading-6 text-slate-500">
+                  هذا الرقم للعرض فقط؛ لم يتم إرسال الطلب إلى نظام
+                  خارجي أو حفظ معلومات الزبون على خادم.
                 </p>
-              )}
-
-              <div className="flex flex-col-reverse gap-3 border-t border-gray-100 pt-5 sm:flex-row">
                 <button
                   type="button"
                   onClick={() => {
-                    setError("");
+                    setSubmitted(false);
+                    setSelectedProduct(null);
                     setStep(1);
+                    setCustomer({
+                      fullName: "",
+                      phone: "",
+                      alternatePhone: "",
+                      wilaya: "",
+                      commune: "",
+                      address: "",
+                      notes: "",
+                    });
                     window.scrollTo({ top: 0, behavior: "smooth" });
                   }}
-                  className="flex flex-1 items-center justify-center gap-2 rounded-xl border border-gray-200 px-5 py-3 font-bold hover:bg-gray-50"
+                  className="mt-6 rounded-xl bg-red-700 px-6 py-3 font-bold text-white hover:bg-red-800"
                 >
-                  <ChevronDown size={17} className="rotate-[-90deg]" />
-                  العودة
-                </button>
-                <button
-                  type="submit"
-                  className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-[#123c70] px-5 py-3 font-bold text-white hover:bg-[#0d2c50]"
-                >
-                  مراجعة الطلب
-                  <ChevronLeft size={18} />
+                  العودة إلى المنتجات
                 </button>
               </div>
-            </form>
-          </section>
-        )}
-
-        {step === 3 && (
-          <section className="mx-auto max-w-2xl rounded-2xl border border-gray-100 bg-white p-6 shadow-sm sm:p-9">
-            <div className="mb-6 flex items-center gap-3">
-              <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-blue-50 text-[#123c70]">
-                <ShoppingCart size={24} />
-              </div>
-              <div>
-                <h1 className="text-2xl font-black">مراجعة الطلب</h1>
-                <p className="mt-1 text-sm text-gray-500">
-                  تأكد من التفاصيل قبل إنهاء المعاينة
-                </p>
-              </div>
-            </div>
-
-            <div className="space-y-4 rounded-xl bg-gray-50 p-5">
-              <h2 className="font-black">تفاصيل الإطارات</h2>
-              <div className="flex justify-between gap-3 text-sm">
-                <span className="text-gray-500">المنتج</span>
-                <span className="font-bold">{tire.name}</span>
-              </div>
-              <div className="flex justify-between text-sm">
-                <span className="text-gray-500">المقاس</span>
-                <span className="font-bold">{size}</span>
-              </div>
-              <div className="flex justify-between text-sm">
-                <span className="text-gray-500">الكمية</span>
-                <span className="font-bold">{quantity}</span>
-              </div>
-              <div className="flex justify-between text-sm">
-                <span className="text-gray-500">سعر الوحدة</span>
-                <span className="font-bold">{money(tire.price)}</span>
-              </div>
-              <div className="border-t border-gray-200 pt-4">
-                <div className="flex justify-between gap-3">
-                  <span className="font-bold">الإجمالي التجريبي</span>
-                  <span className="text-lg font-black text-[#123c70]">
-                    {money(total)}
-                  </span>
-                </div>
-              </div>
-            </div>
-
-            <div className="mt-5 rounded-xl border border-gray-100 p-5">
-              <h2 className="mb-4 font-black">معلومات الزبون</h2>
-              {[
-                ["الاسم واللقب", customer.fullName],
-                ["رقم الهاتف", customer.phone],
-                ["هاتف إضافي", customer.secondPhone || "غير محدد"],
-                ["الولاية", customer.wilaya],
-                ["البلدية", customer.commune],
-                ["العنوان", customer.address],
-              ].map(([label, value]) => (
-                <div key={label} className="flex justify-between gap-4 border-b border-gray-100 py-3 text-sm last:border-0">
-                  <span className="shrink-0 text-gray-500">{label}</span>
-                  <span className="text-left font-semibold">{value}</span>
-                </div>
-              ))}
-            </div>
-
-            <p className="mt-5 rounded-xl bg-amber-50 p-4 text-xs leading-6 text-amber-800">
-              هذا تأكيد تجريبي فقط. لن يتم إرسال الطلب إلى نفطال أو إلى أي جهة،
-              والأسعار المعروضة ليست أسعارًا رسمية.
-            </p>
-
-            <div className="mt-6 flex flex-col gap-3 sm:flex-row">
-              <button
-                onClick={() => {
-                  setStep(2);
-                  window.scrollTo({ top: 0, behavior: "smooth" });
-                }}
-                className="flex flex-1 items-center justify-center gap-2 rounded-xl border border-gray-200 px-5 py-3 font-bold"
-              >
-                تعديل المعلومات
-              </button>
-              <button
-                onClick={confirmDemoOrder}
-                className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-[#123c70] px-5 py-3 font-bold text-white"
-              >
-                إنهاء المعاينة
-                <Check size={18} />
-              </button>
-            </div>
-          </section>
-        )}
-
-        {step === 4 && (
-          <section className="mx-auto max-w-xl rounded-2xl border border-gray-100 bg-white px-6 py-10 text-center shadow-sm sm:px-10">
-            <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-full bg-green-50 text-green-600">
-              <CircleCheck size={44} />
-            </div>
-            <h1 className="mt-6 text-2xl font-black">اكتملت معاينة الطلب</h1>
-            <p className="mt-3 text-sm leading-7 text-gray-500">
-              تم إنشاء رقم تجريبي للعرض داخل هذه الصفحة فقط. لم يُرسل أي طلب
-              حقيقي ولم تُحفظ المعلومات على خادم.
-            </p>
-            <div className="mt-6 rounded-xl bg-gray-50 p-5">
-              <div className="text-xs text-gray-500">رقم المعاينة</div>
-              <div className="mt-2 text-xl font-black tracking-wider text-[#123c70]">
-                {orderNumber}
-              </div>
-              <div className="mt-4 border-t border-gray-200 pt-4 text-sm">
-                <div className="flex justify-between gap-3">
-                  <span className="text-gray-500">عدد الإطارات</span>
-                  <span className="font-bold">{quantity}</span>
-                </div>
-                <div className="mt-3 flex justify-between gap-3">
-                  <span className="text-gray-500">الإجمالي التجريبي</span>
-                  <span className="font-black">{money(total)}</span>
-                </div>
-              </div>
-            </div>
-            <button
-              onClick={() => {
-                setStep(1);
-                setError("");
-                setOrderNumber("");
-                window.scrollTo({ top: 0, behavior: "smooth" });
-              }}
-              className="mt-6 w-full rounded-xl bg-[#123c70] px-5 py-3 font-bold text-white"
-            >
-              إنشاء معاينة جديدة
-            </button>
-          </section>
-        )}
-
-        <footer className="mt-12 border-t border-gray-200 pt-6 text-center">
-          <div className="flex items-center justify-center gap-2 text-sm font-bold text-[#123c70]">
-            <Truck size={18} />
-            محطتي
+            )}
           </div>
-          <p className="mt-2 text-xs leading-6 text-gray-500">
-            مشروع تجريبي مستقل وغير تابع رسميًا لشركة نفطال.
-            <br />
-            لا تُستخدم هذه الصفحة لإتمام الدفع أو إرسال طلبات حقيقية.
-          </p>
-        </footer>
-      </div>
+        </section>
+      )}
+
+      <footer className="bg-slate-900 text-slate-300">
+        <div className="mx-auto flex max-w-6xl flex-col gap-3 px-4 py-8 text-sm sm:flex-row sm:items-center sm:justify-between">
+          <span className="font-bold text-white">MAHATA</span>
+          <span>خدمات المنتجات والطلبات</span>
+        </div>
+      </footer>
     </main>
   );
 }
